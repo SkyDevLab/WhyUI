@@ -1,0 +1,38 @@
+{
+  "name": "whyui",
+  "version": "1.0.0",
+  "description": "Understand why web UI elements are disabled, hidden, readonly, or not interactive. By SkyDevLab.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && node scripts/build.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit"
+  },
+  "keywords": [
+    "edge-extension",
+    "chrome-extension",
+    "devtools",
+    "ui-debugging",
+    "disabled-button",
+    "accessibility"
+  ],
+  "author": "SkyDevLab",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.268",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "jsdom": "^24.1.0",
+    "lucide-react": "^0.395.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.1",
+    "vitest": "^1.6.0"
+  }
+}

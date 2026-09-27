@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhyUI Interaction Debugger - Edge Extension Workbench</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #06b6d4;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 30px;
+      line-height: 1.6;
+    }
+    header {
+      margin-bottom: 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    h1 { font-size: 24px; color: #ffffff; display: flex; align-items: center; gap: 10px; }
+    .badge { background: #0284c7; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 4px; }
+    p.desc { color: var(--text-muted); font-size: 14px; margin-top: 6px; }
+
+    /* Interactive toolbar at top */
+    .controls-toolbar {
+      background: #1e293b;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+      margin-bottom: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .toolbar-label {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-right: 6px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+      gap: 20px;
+    }
+    .test-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .test-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .test-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .demo-area {
+      background: #090d16;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 14px;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      position: relative;
+    }
+
+    /* Common Buttons */
+    .btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #1d4ed8; }
+    .btn-secondary { background: #475569; color: #fff; }
+    .btn-secondary:hover { background: #64748b; }
+    .btn-danger { background: #dc2626; color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-success { background: #059669; color: #fff; }
+    .btn-success:hover { background: #047857; }
+
+    button:disabled, input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      width: 100%;
+    }
+    label { font-size: 12px; font-weight: 600; color: #cbd5e1; }
+    input[type="text"], input[type="email"], input[type="password"], input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      background: #1e293b;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 13px;
+    }
+    input:invalid {
+      border-color: #ef4444;
+    }
+
+    /* Overlay styles */
+    .overlay-wrapper {
+      position: relative;
+      width: 100%;
+      height: 90px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .live-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.85);
+      border: 2px dashed #ef4444;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: #fca5a5;
+      font-weight: 700;
+      font-size: 12px;
+      z-index: 9999;
+      gap: 4px;
+    }
+
+    /* Off-screen container */
+    .offscreen-scroll-container {
+      width: 100%;
+      height: 120px;
+      overflow: auto;
+      background: #020617;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      position: relative;
+      padding: 10px;
+    }
+    .offscreen-spacer {
+      width: 2500px;
+      height: 1200px;
+      position: relative;
+    }
+    .offscreen-target {
+      position: absolute;
+      left: 1800px;
+      top: 800px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>WhyUI Verification Workbench <span class="badge">Edge Manifest V3</span></h1>
+    <p class="desc">
+      Interactive test suite for WhyUI: "Why can't I click this element?" Test element picking, 9-point overlay interception, pointer-event inheritance, visibility states, ancestor interaction chains, and live state watching.
+    </p>
+  </header>
+
+  <!-- Interactive Control Bar -->
+  <div class="controls-toolbar">
+    <span class="toolbar-label">Live Test Controls:</span>
+    <button class="btn btn-secondary" onclick="toggleDynamicBtn()">[Toggle Disabled]</button>
+    <button class="btn btn-secondary" onclick="toggleOverlay()">[Toggle Overlay]</button>
+    <button class="btn btn-secondary" onclick="togglePointerEvents()">[Toggle Pointer Events]</button>
+    <button class="btn btn-secondary" onclick="scrollToOffScreen()">[Scroll To Element]</button>
+  </div>
+
+  <div class="grid">
+
+    <!-- 1. Normal enabled button -->
+    <div class="test-card">
+      <div class="test-title">Case 1: Normal Clickable Button</div>
+      <div class="test-desc">Expected: 🟢 Interactive (canClick: true, 0 blocking conditions).</div>
+      <div class="demo-area">
+        <button id="case1-enabled-btn" class="btn btn-primary">Clickable Action</button>
+      </div>
+    </div>
+
+    <!-- 2. Button with disabled -->
+    <div class="test-card">
+      <div class="test-title">Case 2: Button with disabled Attribute</div>
+      <div class="test-desc">Expected: 🔴 Not clickable (Confirmed: HTML "disabled" attribute).</div>
+      <div class="demo-area">
+        <button id="case2-disabled-btn" class="btn btn-primary" disabled>Disabled Button</button>
+      </div>
+    </div>
+
+    <!-- 3. Button with aria-disabled -->
+    <div class="test-card">
+      <div class="test-title">Case 3: aria-disabled="true"</div>
+      <div class="test-desc">Expected: 🟡 Potentially blocked (Confirmed: aria-disabled="true").</div>
+      <div class="demo-area">
+        <button id="case3-aria-btn" class="btn btn-primary" aria-disabled="true" style="opacity: 0.6; cursor: not-allowed;">Aria Disabled</button>
+      </div>
+    </div>
+
+    <!-- 4. Overlay & Inspect Blocking Element -->
+    <div class="test-card">
+      <div class="test-title">Case 4: Overlay Interception (Inspect Blocking)</div>
+      <div class="test-desc">A translucent modal backdrop covers the target button. Test "Inspect Blocking Element"!</div>
+      <div class="demo-area">
+        <div class="overlay-wrapper">
+          <button id="case4-target-btn" class="btn btn-primary">Underneath Button</button>
+          <div id="case4-backdrop" class="live-backdrop" role="dialog" aria-modal="true">
+            <span>Modal Backdrop (Click Interceptor)</span>
+            <span style="font-size: 10px; font-weight: 400; color: #fecaca;">z-index: 9999</span>
+          </div>
+        </div>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="font-size: 11px;" onclick="toggleOverlay()">Toggle Overlay</button>
+      </div>
+    </div>
+
+    <!-- 5. Pointer-events: none (Direct) -->
+    <div class="test-card">
+      <div class="test-title">Case 5: pointer-events: none (Direct)</div>
+      <div class="test-desc">Direct pointer-events: none on element. Clicks pass through.</div>
+      <div class="demo-area">
+        <button id="case5-pointer-btn" class="btn btn-primary" style="pointer-events: none;">Blocked Button</button>
+      </div>
+      <div>
+        <button class="btn btn-secondary" style="font-size: 11px;" onclick="togglePointerEvents()">Toggle Pointer Events</button>
+      </div>
+    </div>
+
+    <!-- 6. Pointer-events: none (Inherited from Ancestor) -->
+    <div class="test-card">
+      <div class="test-title">Case 6: pointer-events: none (Ancestor)</div>
+      <div class="test-desc">Ancestor container has pointer-events: none. Child inherits blockage.</div>
+      <div class="demo-area">
+        <div id="case6-ancestor" class="checkout-panel" style="pointer-events: none; width: 100%; text-align: center;">
+          <button id="case6-child-btn" class="btn btn-primary">Inherited Block Button</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 7. Off-screen Element -->
+    <div class="test-card">
+      <div class="test-title">Case 7: Off-Screen Element</div>
+      <div class="test-desc">Element exists in DOM but is scrolled out of viewport.</div>
+      <div class="demo-area" style="padding: 6px;">
+        <div id="offscreen-scroll" class="offscreen-scroll-container">
+          <div class="offscreen-spacer">
+            <span style="font-size: 11px; color: #94a3b8;">Scroll right and down to reveal off-screen button...</span>
+            <button id="case7-offscreen-btn" class="btn btn-primary offscreen-target">Off-Screen Target</button>
+          </div>
+        </div>
+      </div>
+      <div>
+        <button class="btn btn-secondary" style="font-size: 11px;" onclick="scrollToOffScreen()">Scroll To Element</button>
+      </div>
+    </div>
+
+    <!-- 8. Invisible Visual States -->
+    <div class="test-card">
+      <div class="test-title">Case 8: Visibility States (display, visibility, opacity)</div>
+      <div class="test-desc">Tests display: none, visibility: hidden, and opacity: 0 (transparent).</div>
+      <div class="demo-area" style="flex-direction: column; gap: 8px;">
+        <button id="case8-display-none" class="btn btn-primary" style="display: none;">display: none</button>
+        <button id="case8-vis-hidden" class="btn btn-primary" style="visibility: hidden;">visibility: hidden</button>
+        <button id="case8-opacity-zero" class="btn btn-primary" style="opacity: 0;">opacity: 0 (transparent)</button>
+        <span style="font-size: 11px; color: #94a3b8;">(3 buttons with distinct CSS visibility states)</span>
+      </div>
+    </div>
+
+    <!-- 9. Zero-sized element -->
+    <div class="test-card">
+      <div class="test-title">Case 9: Zero-Sized Element</div>
+      <div class="test-desc">Element has 0px width and height in the layout tree.</div>
+      <div class="demo-area">
+        <button id="case9-zero-btn" class="btn btn-primary" style="width: 0px; height: 0px; padding: 0; border: 0; overflow: hidden;">Zero Size</button>
+        <span style="font-size: 11px; color: #94a3b8;">Button with 0px × 0px dimensions inside this box</span>
+      </div>
+    </div>
+
+    <!-- 10. Enclosing <fieldset disabled> -->
+    <div class="test-card">
+      <div class="test-title">Case 10: Enclosing &lt;fieldset disabled&gt;</div>
+      <div class="test-desc">Descendant of a disabled fieldset (excluding first legend).</div>
+      <div class="demo-area">
+        <fieldset disabled style="border: 1px solid #475569; padding: 10px; width: 100%;">
+          <legend style="color: #94a3b8; font-size: 11px; padding: 0 4px;">Billing Container</legend>
+          <button id="case10-fieldset-btn" class="btn btn-primary">Fieldset Submit</button>
+        </fieldset>
+      </div>
+    </div>
+
+    <!-- 11. Form Validation Gating -->
+    <div class="test-card">
+      <div class="test-title">Case 11: Form Validation Gating</div>
+      <div class="test-desc">Contains invalid email, empty password, and unchecked checkbox.</div>
+      <div class="demo-area">
+        <form id="case11-form" class="form-group" onsubmit="return false;">
+          <input id="case11-email" type="email" required value="invalid-email" placeholder="Email" />
+          <input id="case11-pwd" type="password" required placeholder="Password" />
+          <label style="font-size: 11px; display: flex; align-items: center; gap: 6px;">
+            <input id="case11-terms" type="checkbox" required /> Agree to Terms
+          </label>
+          <button id="case11-submit-btn" type="submit" class="btn btn-primary" style="margin-top: 4px;">Submit Order</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- 12. Dynamic State Timeline -->
+    <div class="test-card">
+      <div class="test-title">Case 12: Dynamic State Watcher Timeline</div>
+      <div class="test-desc">Toggle the button state to observe MutationObserver timeline logs.</div>
+      <div class="demo-area" style="flex-direction: column;">
+        <button id="case12-dynamic-btn" class="btn btn-primary" disabled>Dynamic Target Button</button>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button class="btn btn-secondary" onclick="toggleDynamicBtn()">Toggle Disabled</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // Live toggle functions for manual testing in Microsoft Edge
+    function toggleDynamicBtn() {
+      const btn = document.getElementById('case12-dynamic-btn');
+      if (!btn) return;
+      if (btn.hasAttribute('disabled')) {
+        btn.removeAttribute('disabled');
+        btn.textContent = 'Dynamic Target Button (Enabled)';
+      } else {
+        btn.setAttribute('disabled', 'true');
+        btn.textContent = 'Dynamic Target Button (Disabled)';
+      }
+    }
+
+    function toggleOverlay() {
+      const backdrop = document.getElementById('case4-backdrop');
+      if (!backdrop) return;
+      backdrop.style.display = backdrop.style.display === 'none' ? 'flex' : 'none';
+    }
+
+    function togglePointerEvents() {
+      const btn = document.getElementById('case5-pointer-btn');
+      if (!btn) return;
+      if (btn.style.pointerEvents === 'none') {
+        btn.style.pointerEvents = 'auto';
+        btn.textContent = 'Unblocked Button (pointer-events: auto)';
+      } else {
+        btn.style.pointerEvents = 'none';
+        btn.textContent = 'Blocked Button (pointer-events: none)';
+      }
+    }
+
+    function scrollToOffScreen() {
+      const container = document.getElementById('offscreen-scroll');
+      const target = document.getElementById('case7-offscreen-btn');
+      if (container && target) {
+        target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+      }
+    }
+  </script>
+</body>
+</html>
