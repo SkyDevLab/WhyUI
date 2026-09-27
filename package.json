@@ -8,7 +8,9 @@
     "build": "tsc && node scripts/build.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "pack": "node scripts/pack.js",
+    "zip": "node scripts/pack.js"
   },
   "keywords": [
     "edge-extension",
