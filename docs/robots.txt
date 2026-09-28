@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://skydevlab.github.io/WhyUI/sitemap.xml
