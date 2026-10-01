@@ -407,3 +407,10 @@ This distinction ensures technical precision, transparency, and developer trust.
 
 ## Published by
 **SkyDevLab** — Developer tools for modern web engineering.
+
+
+## 👤 Author & Project Identity
+
+**WhyUI** is created and maintained by **Surya Pratap Singh (SkyDevLab)**.
+
+GitHub: https://github.com/SkyDevLab
